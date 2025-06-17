@@ -79,8 +79,14 @@ End setup instructions
 -->
 
 
-3. Customize whatever you'd like in the code.
-4. Open the folder LangGraph Studio!
+3. Install the required dependencies:
+
+```bash
+pip install -r pyproject.toml
+```
+
+4. Customize whatever you'd like in the code.
+5. Open the folder LangGraph Studio!
 
 ## How to customize
 
