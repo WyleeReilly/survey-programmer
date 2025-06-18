@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from typing import Any, Callable, List, Optional, cast, Union
-
 from langchain_tavily import TavilySearch  # type: ignore[import-not-found]
 from react_agent.configuration import Configuration
 import asyncio
+
 # from react_agent.util.file_util import HermesFileUtil
 info = """Utility tools used by the LangGraph agent.
 
@@ -19,14 +19,14 @@ Both tools are designed as **async** callables so the graph can await them.
 # ---------------------------------------------------------------------------
 # Search wrapper (kept from the original template)
 # ---------------------------------------------------------------------------
-async def search(query: str) -> Optional[dict[str, Any]]:
-    """General web search via Tavily.
+# async def search(query: str) -> Optional[dict[str, Any]]:
+#     """General web search via Tavily.
 
-    Useful for current‑events and broad fact‑finding queries.
-    """
-    configuration = Configuration.from_context()
-    wrapped = TavilySearch(max_results=configuration.max_search_results)
-    return cast(dict[str, Any], await wrapped.ainvoke({"query": query}))
+#     Useful for current‑events and broad fact‑finding queries.
+#     """
+#     configuration = Configuration.from_context()
+#     wrapped = TavilySearch(max_results=configuration.max_search_results)
+#     return cast(dict[str, Any], await wrapped.ainvoke({"query": query}))
 
 
 # ---------------------------------------------------------------------------
@@ -53,7 +53,6 @@ async def load_survey_file(file_id: Union[int, str]) -> str:
     • Credentials / env are read inside `HermesFileUtil` – fill them in
       once during project setup.
     """
-    # HermesFileUtil already caches tokens, so we can reuse one instance
     from react_agent.util.file_util import HermesFileUtil
 
     hermes = HermesFileUtil()
@@ -66,4 +65,4 @@ async def load_survey_file(file_id: Union[int, str]) -> str:
 # ---------------------------------------------------------------------------
 # Expose tools to the agent runtime
 # ---------------------------------------------------------------------------
-TOOLS: List[Callable[..., Any]] = [search, load_survey_file]
+TOOLS: List[Callable[..., Any]] = [load_survey_file]
