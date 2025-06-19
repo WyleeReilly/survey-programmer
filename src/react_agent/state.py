@@ -52,6 +52,14 @@ class State(InputState):
     This is a 'managed' variable, controlled by the state machine rather than user code.
     It is set to 'True' when the step count reaches recursion_limit - 1.
     """
+    survey_text: str | None = field(default=None)
+    """Plain-text contents of the loaded survey document, if any."""
+
+    survey_json: dict | None = field(default=None)
+     # (optional) keep the API’s raw response
+    fc_response: str | None = field(default=None)
+
+
 
     # Additional attributes can be added here as needed.
     # Common examples include:
