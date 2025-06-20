@@ -8,7 +8,7 @@ This template showcases a [ReAct agent](https://arxiv.org/abs/2210.03629) implem
 
 ![Graph view in LangGraph studio UI](./static/studio_ui.png)
 
-The core logic, defined in `src/react_agent/graph.py`, demonstrates a flexible ReAct agent that iteratively reasons about user queries and executes actions, showcasing the power of this approach for complex problem-solving tasks.
+The core logic, defined in `src/react_agent/graphs/graph_survey_program.py`, demonstrates a flexible ReAct agent that iteratively reasons about user queries and executes actions, showcasing the power of this approach for complex problem-solving tasks.
 
 ## What it does
 
@@ -96,7 +96,7 @@ pip install -r pyproject.toml
 
 You can also quickly extend this template by:
 
-- Modifying the agent's reasoning process in [graph.py](./src/react_agent/graph.py).
+- Modifying the agent's reasoning process in [graph_survey_program.py](./src/react_agent/graphs/graph_survey_program.py).
 - Adjusting the ReAct loop or adding additional steps to the agent's decision-making process.
 
 ## Development
