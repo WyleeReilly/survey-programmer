@@ -1,5 +1,5 @@
 [project]
-name = "react-agent"
+name = "survey-programmer"
 version = "0.0.1"
 description = "Starter template for making a custom Reasoning and Action agent (using tool calling) in LangGraph."
 authors = [
@@ -28,11 +28,15 @@ requires = ["setuptools>=73.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["langgraph.templates.react_agent", "react_agent"]
-[tool.setuptools.package-dir]
-"langgraph.templates.react_agent" = "src/react_agent"
-"react_agent" = "src/react_agent"
+# Treat "src/" as the root for *every* package
+package-dir = { "" = "src" }
 
+# Explicit list of top-level packages to expose
+packages = [
+    "survey_programmer",
+    "util",
+    "survey_designer"
+]
 
 [tool.setuptools.package-data]
 "*" = ["py.typed"]

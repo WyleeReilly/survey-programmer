@@ -8,7 +8,7 @@ from typing import Annotated
 from langchain_core.runnables import ensure_config
 from langgraph.config import get_config
 
-from react_agent import prompts
+from survey_programmer import prompts
 
 
 @dataclass(kw_only=True)

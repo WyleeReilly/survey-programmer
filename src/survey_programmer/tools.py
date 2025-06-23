@@ -3,10 +3,9 @@ from __future__ import annotations
 
 from typing import Any, Callable, List, Optional, cast, Union
 from langchain_tavily import TavilySearch  # type: ignore[import-not-found]
-from react_agent.configuration import Configuration
+from survey_programmer.configuration import Configuration
 import asyncio
 
-# from react_agent.util.file_util import HermesFileUtil
 info = """Utility tools used by the LangGraph agent.
 
 Includes:
@@ -53,7 +52,7 @@ async def load_survey_file(file_id: Union[int, str]) -> str:
     • Credentials / env are read inside `HermesFileUtil` – fill them in
       once during project setup.
     """
-    from react_agent.util.file_util import HermesFileUtil
+    from util.file_util import HermesFileUtil
 
     hermes = HermesFileUtil()
 

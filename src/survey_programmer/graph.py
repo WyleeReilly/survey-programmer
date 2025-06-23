@@ -11,10 +11,10 @@ from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
 from langsmith import Client
 
-from react_agent.configuration import Configuration
-from react_agent.state import InputState, State
-from react_agent.tools import TOOLS
-from react_agent.utils import load_chat_model
+from survey_programmer.configuration import Configuration
+from survey_programmer.state import InputState, State
+from survey_programmer.tools import TOOLS
+from util.chat_util import load_chat_model
 import asyncio
 import os
 import json
@@ -200,4 +200,4 @@ builder.add_edge("generate_surveyjs_json", "post_fc_survey")
 builder.add_edge("post_fc_survey", "__end__")
 
 # Compile the builder into an executable graph
-graph = builder.compile(name="survey_agent22")
+graph = builder.compile(name="survey_agent28")
