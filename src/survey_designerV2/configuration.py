@@ -14,19 +14,33 @@ from survey_programmer import prompts
 class Configuration:
     """The configuration for the agent."""
 
-    system_prompt: str = field(
-        default=prompts.SYSTEM_PROMPT,
+    initial_design_prompt: str = field(
+        default="survey_designer_initial_design",
         metadata={
-            "description": "The system prompt to use for the agent's interactions. "
+            "description": "The system prompt used for the agents initial survey design."
             "This prompt sets the context and behavior for the agent."
         },
     )
 
-    model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default="openai/gpt-4.1",
+    initial_design_guardrail_prompt: str = field(
+        default="survey_designer_initial_guardrail",
         metadata={
-            "description": "The name of the language model to use for the agent's main interactions. "
-            "Should be in the form: provider/model-name."
+            "description": "The system prompt used to initially assess the users first query."
+            "This prompt decides whether the user can 'enter' the graph."
+        },
+    )
+
+    revision_router_prompt: str = field(
+        default="survey_designer_revision_router",
+        metadata={
+            "description": "The system prompt used to route the users feedback."
+        },
+    )
+
+    revision_reviser_prompt: str = field(
+        default="survey_designer_revision_reviser",
+        metadata={
+            "description": "The system prompt used to revise the survey using the users request."
         },
     )
 

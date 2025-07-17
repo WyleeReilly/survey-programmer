@@ -2,7 +2,8 @@
   "dependencies": ["."],
   "graphs": {
     "survey_agent": "./src/survey_programmer/graph.py:graph",
-    "survey_designer": "./src/survey_designer/graph.py:graph"
+    "survey_designer": "./src/survey_designer/graph.py:graph",
+    "survey_designerV2": "./src/survey_designerV2/graph.py:graph"
   },
   "env": ".env"
 }
