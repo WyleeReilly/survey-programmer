@@ -29,3 +29,10 @@ class State(InputState):
     The guardrails decision to advance or not
     """
     design_router_decision: Literal["advance", "off-topic", "revise"] = None
+
+    objective_router_decision: Literal["advance", "off-topic", "revise"] = None
+    
+    clarified_objectives: dict[str, Any] | None = None
+    """
+    The JSON of the survey being designed between the user and AI
+    """

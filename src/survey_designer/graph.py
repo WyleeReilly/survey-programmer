@@ -100,10 +100,7 @@ def _last_ai_text(messages: List[AnyMessage]) -> str:
         if isinstance(msg, AIMessage) and msg.content and msg.content.strip():
             return msg.content
     return ""
-
-def _wait_node(state: DesignerState) -> DesignerState:
-    interrupt("Awaiting user feedback on the survey draft")
-    return state               
+            
 
 async def _router(state: DesignerState
                   ) -> Literal["wait", "revision",

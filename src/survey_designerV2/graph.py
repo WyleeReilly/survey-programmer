@@ -117,41 +117,36 @@ def _update_state(state: State, **changes) -> State:
 
 
 async def guardrail_router(state: State
-                  ) -> Literal["initial_design",
+                  ) -> Literal["objective_clarifier",
                                END]:
 
     if state.guardrail_decision == "advance":
-        return "initial_design"
+        return "objective_clarifier"
     else:
         return END
 
 
-async def design_router(state: State, config: RunnableConfig, feedback) -> Literal["revision",
-                               END]:
+async def design_router(state: State, config: RunnableConfig) -> Literal["design_revision", "off_topic_revision_nudge", END]:
 
     if state.design_router_decision == "revise":
-        return "revision"
+        return "design_revision"
+    elif state.design_router_decision == "off-topic":
+       return "off_topic_revision_nudge"
     else:
         return END
 
+async def objective_router(state: State, config: RunnableConfig) -> Literal["off_topic_objective_nudge", "initial_design", "objective_reviser"]:
+
+    if state.design_router_decision == "revise":
+        return "objective_reviser"
+    if state.design_router_decision == "off-topic":
+       return "off_topic_objective_nudge"
+    else:
+        return "initial_design"
 
 
 
-
-    # if guardrail_check['direction'] == 'advance':
-        
-    #     return _update_state(
-    #         state,
-    #         guardrail_decision = guardrail_check['direction']
-    #     )
-    # else:
-    #         return _update_state(
-    #             state,
-    #             messages=state.messages + [guardrail_check['response']],
-    #             guardrail_decision = guardrail_check['direction']
-            # )
-
-# ────────────────────────────────────────────────────────────────────
+#───────────────────────────────────────────────
 # Nodes
 # ────────────────────────────────────────────────────────────────────
 
@@ -179,18 +174,70 @@ async def initial_guardrail_node(state: State, config: RunnableConfig):
                 guardrail_decision = guardrail_check['direction']
             )
 
+async def objective_clarifier_node(state: State, config: RunnableConfig) -> State:
+    objective = _latest_human(state)
+
+    configuration = Configuration.from_context()
+
+    # 1) write the first draft
+    clarified_objectives, _ = await _run_chain(
+        configuration.objective_clarifier_prompt,
+        human_message=objective,
+    )
+
+    return _update_state(
+        state,
+        messages=state.messages + [clarified_objectives],
+        clarified_objectives = clarified_objectives
+    )
+
+
+async def objective_reviser_node(state: State, config: RunnableConfig) -> State:
+    human_message = _latest_human(state)
+
+    configuration = Configuration.from_context()
+
+    # 1) write the first draft
+    revision, _ = await _run_chain(
+        configuration.objective_reviser_prompt,
+        revision_request=human_message,
+        objectives = state.clarified_objectives
+    )
+
+    return _update_state(
+        state,
+        messages=state.messages + [revision],
+        clarified_objectives = revision
+    )
+
+
+async def await_human_feedback_on_objectives_node(state: State, config: RunnableConfig) -> State:
+
+    feedback = interrupt("What next?")
+    feedback = next(iter(feedback.values())) if isinstance(feedback, dict) else feedback
+
+    configuration = Configuration.from_context()
+
+    route, _ = await _run_chain(
+        configuration.objective_router_prompt,
+        human_message=feedback,
+    )
+
+    return _update_state(
+            state,
+            messages=state.messages + [HumanMessage(content=feedback)],
+            objective_router_decision = route
+        )
+
 
 async def initial_design_node(state: State, config: RunnableConfig) -> State:
-    objective = _latest_human(state)
-    if not objective:
-        return {}
 
     configuration = Configuration.from_context()
 
     # 1) write the first draft
     initial_survey, _ = await _run_chain(
         configuration.initial_design_prompt,
-        objective=objective,
+        objective=state.clarified_objectives,
     )
 
     # 2) create a reflection **about** that draft
@@ -202,7 +249,7 @@ async def initial_design_node(state: State, config: RunnableConfig) -> State:
         messages=state.messages + reflection_msgs,
     )
 
-async def await_human_feedback_node(state: State, config: RunnableConfig) -> State:
+async def await_human_feedback_on_revision_node(state: State, config: RunnableConfig) -> State:
 
     feedback = interrupt("What next?")
     feedback = next(iter(feedback.values())) if isinstance(feedback, dict) else feedback
@@ -217,7 +264,7 @@ async def await_human_feedback_node(state: State, config: RunnableConfig) -> Sta
     return _update_state(
             state,
             messages=state.messages + [HumanMessage(content=feedback)],
-            design_router_decision = route
+            design_router_decision = route['direction']
         )
 
 
@@ -243,27 +290,50 @@ async def revision_reviser_node(state: State, config: RunnableConfig) -> State:
     )
 
 
+async def off_topic_revision_node(state: State) -> State:
+    apology = AIMessage(
+        content="Sorry, I can only help with writing surveys.")
+    return _update_state(
+        state,
+        messages=state.messages + [apology]
+    )
+
+async def off_topic_objective_node(state: State) -> State:
+    apology = AIMessage(
+        content="Sorry, I can only help with writing surveys.")
+    return _update_state(
+        state,
+        messages=state.messages + [apology]
+    )
 # ────────────────────────────────────────────────────────────────────
 # Graph wiring
 # ────────────────────────────────────────────────────────────────────
 graph = StateGraph(State, config_schema=Configuration)
 
 graph.add_node("initial_guardrail", initial_guardrail_node)
+graph.add_node("await_objective_feedback",   await_human_feedback_on_objectives_node)
+graph.add_node("objective_clarifier",   objective_clarifier_node)
+graph.add_node("off_topic_objective_nudge",  off_topic_revision_node)
 graph.add_node("initial_design",   initial_design_node)
-graph.add_node("await_human_feedback",   await_human_feedback_node)
-graph.add_node("revision",  revision_reviser_node)
+graph.add_node("await_revision_feedback",   await_human_feedback_on_revision_node)
+graph.add_node("design_revision",  revision_reviser_node)
+graph.add_node("off_topic_revision_nudge",  off_topic_revision_node)
+graph.add_node("objective_reviser",  objective_reviser_node)
 
+graph.add_conditional_edges("await_objective_feedback", objective_router)
+graph.add_conditional_edges("initial_guardrail", guardrail_router)
+graph.add_conditional_edges("await_revision_feedback", design_router)
 
 graph.add_edge(START, "initial_guardrail")
+graph.add_edge("initial_guardrail", "objective_clarifier")
+graph.add_edge("objective_clarifier", "await_objective_feedback")
+graph.add_edge("off_topic_objective_nudge", "await_objective_feedback")
+graph.add_edge("objective_reviser", "await_objective_feedback")
 
-graph.add_conditional_edges("initial_guardrail", guardrail_router)
-graph.add_edge("initial_design", "await_human_feedback")
-graph.add_edge("revision", "await_human_feedback")
-
-graph.add_conditional_edges("await_human_feedback", design_router)
-
-graph.add_edge("await_human_feedback", END)
+graph.add_edge("initial_design", "await_revision_feedback")
+graph.add_edge("design_revision", "await_revision_feedback")
+graph.add_edge("off_topic_revision_nudge", "await_revision_feedback")
 graph.add_edge("initial_guardrail", END)
 
 
-compiled_graph = graph.compile(name="survey_designer44")
+compiled_graph = graph.compile(name="survey_designer55")

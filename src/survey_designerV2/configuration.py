@@ -14,6 +14,27 @@ from survey_programmer import prompts
 class Configuration:
     """The configuration for the agent."""
 
+    objective_clarifier_prompt: str = field(
+        default="survey_designer_objective_clarifier",
+        metadata={
+            "description": "The system prompt used to clarify research objectives with the human."
+        },
+    )
+
+    objective_router_prompt: str = field(
+        default="survey_designer_objective_router",
+        metadata={
+            "description": "The system prompt used to understand whether or not to advance."
+        },
+    )
+    objective_reviser_prompt: str = field(
+        default="survey_designer_objective_reviser",
+        metadata={
+            "description": "The system prompt used to understand whether or not to advance."
+        },
+    )
+
+
     initial_design_prompt: str = field(
         default="survey_designer_initial_design",
         metadata={
