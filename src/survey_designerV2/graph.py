@@ -12,6 +12,9 @@ from langchain.schema import AIMessage, BaseMessage
 from langchain_core.output_parsers.string import StrOutputParser
 from langgraph.types import interrupt
 
+from langgraph.graph import StateGraph
+
+
 # ────────────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────────────
@@ -153,8 +156,12 @@ async def objective_router(state: State, config: RunnableConfig) -> Literal["off
 
 async def initial_guardrail_node(state: State, config: RunnableConfig):
     configuration = Configuration.from_context()
-
+    # print(config)
     initial_message = _latest_human(state)
+    thread_id = config.get("metadata", {}).get("thread_id")
+
+    print(thread_id)
+
 
     guardrail_check, _ = await _run_chain(
         configuration.initial_design_guardrail_prompt,
@@ -165,13 +172,16 @@ async def initial_guardrail_node(state: State, config: RunnableConfig):
         
         return _update_state(
             state,
-            guardrail_decision = guardrail_check['direction']
+            guardrail_decision = guardrail_check['direction'],
+            thread_id = thread_id
+
         )
     else:
             return _update_state(
                 state,
                 messages=state.messages + [guardrail_check['response']],
-                guardrail_decision = guardrail_check['direction']
+                guardrail_decision = guardrail_check['direction'],
+                thread_id = thread_id
             )
 
 async def objective_clarifier_node(state: State, config: RunnableConfig) -> State:
@@ -187,8 +197,8 @@ async def objective_clarifier_node(state: State, config: RunnableConfig) -> Stat
 
     return _update_state(
         state,
-        messages=state.messages + [clarified_objectives],
-        clarified_objectives = clarified_objectives
+        messages=state.messages + [AIMessage(content=clarified_objectives)],
+        clarified_objectives = clarified_objectives,
     )
 
 
@@ -206,7 +216,7 @@ async def objective_reviser_node(state: State, config: RunnableConfig) -> State:
 
     return _update_state(
         state,
-        messages=state.messages + [revision],
+        messages=state.messages + [AIMessage(content=revision)],
         clarified_objectives = revision
     )
 
@@ -325,7 +335,7 @@ graph.add_conditional_edges("initial_guardrail", guardrail_router)
 graph.add_conditional_edges("await_revision_feedback", design_router)
 
 graph.add_edge(START, "initial_guardrail")
-graph.add_edge("initial_guardrail", "objective_clarifier")
+# graph.add_edge("initial_guardrail", "objective_clarifier")
 graph.add_edge("objective_clarifier", "await_objective_feedback")
 graph.add_edge("off_topic_objective_nudge", "await_objective_feedback")
 graph.add_edge("objective_reviser", "await_objective_feedback")
@@ -336,4 +346,4 @@ graph.add_edge("off_topic_revision_nudge", "await_revision_feedback")
 graph.add_edge("initial_guardrail", END)
 
 
-compiled_graph = graph.compile(name="survey_designer55")
+compiled_graph = graph.compile(name="survey_designer61")

@@ -3,6 +3,7 @@ from langgraph.managed import IsLastStep
 from dataclasses import dataclass, field
 from typing import Any, Literal
 from langgraph.graph import END
+from typing import Optional
 
 
 @dataclass
@@ -36,3 +37,5 @@ class State(InputState):
     """
     The JSON of the survey being designed between the user and AI
     """
+    thread_id: Optional[str] = field(default=None)
+
