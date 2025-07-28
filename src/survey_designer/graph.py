@@ -156,8 +156,8 @@ async def initial_design_node(state: DesignerState) -> DesignerState:
 
     # 1) write the first draft
     draft, _ = await _run_chain(
-        "survey_writer",
-        research_objective=objective,
+        "survey_designer_initial_design",
+        objective=objective,
     )
 
     # 2) create a reflection **about** that draft
@@ -277,6 +277,6 @@ graph.add_conditional_edges(
 graph.add_edge("finalization", END)
 
 compiled_graph = graph.compile(
-    name="survey_designer22",
+    name="survey_designer24",
     # checkpointer=SqliteSaver("survey_graph.db")  # add if you want durable interrupts
 )
