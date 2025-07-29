@@ -256,27 +256,28 @@ graph.add_node("finalization",     finalization_node)
 graph.add_node("off_topic",        off_topic_node)          # <- from last patch
 
 graph.add_edge(START, "initial_design")
-graph.add_edge("initial_design", "wait_for_message")
+# graph.add_edge("initial_design", "wait_for_message")
 
-# After every revision we loop back to wait_for_message
-graph.add_edge("revision", "wait_for_message")
-graph.add_edge("off_topic", "wait_for_message")
+# # After every revision we loop back to wait_for_message
+# graph.add_edge("revision", "wait_for_message")
+# graph.add_edge("off_topic", "wait_for_message")
 
-# Conditional fork now starts from wait_for_message
-graph.add_conditional_edges(
-    "wait_for_message",
-    _router,                                # unchanged async router
-    {
-        "wait":         "wait_for_message", # self-loop when router says “wait”
-        "revision":     "revision",
-        "finalization": "finalization",
-        "off_topic":    "off_topic",
-    },
-)
+# # Conditional fork now starts from wait_for_message
+# graph.add_conditional_edges(
+#     "wait_for_message",
+#     _router,                                # unchanged async router
+#     {
+#         "wait":         "wait_for_message", # self-loop when router says “wait”
+#         "revision":     "revision",
+#         "finalization": "finalization",
+#         "off_topic":    "off_topic",
+#     },
+# )
 
-graph.add_edge("finalization", END)
+# graph.add_edge("finalization", END)
+graph.add_edge("initial_design", END)
 
 compiled_graph = graph.compile(
-    name="survey_designer24",
+    name="survey_designer25",
     # checkpointer=SqliteSaver("survey_graph.db")  # add if you want durable interrupts
 )
