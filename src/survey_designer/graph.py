@@ -10,9 +10,12 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Literal
 import json
 from langsmith.async_client import AsyncClient
-from langchain_core.messages import HumanMessage, AIMessage, AnyMessage
+from langchain_core.messages import HumanMessage, AIMessage, AnyMessage, BaseMessage
 from langgraph.types import interrupt
 from langgraph.graph import StateGraph, START, END
+from typing import Any, Tuple, Union, List, Optional, Literal, Dict
+from langchain_core.output_parsers.string import StrOutputParser
+import json, ast, re
 
 # ────────────────────────────────────────────────────────────────────
 # 1.  State  (extends your existing BaseState)
@@ -39,22 +42,95 @@ def _latest_human(state: DesignerState) -> str | None:
             return msg.content
     return None
 
-async def _run_chain(prompt: str, **vars) -> tuple[str, List[AIMessage]]:
-    """
-    Pull the LangSmith prompt and invoke it once (no streaming).
-    Returns (full_text, [AIMessage]).
-    """
-    chain = await _client.pull_prompt(prompt, include_model=True)   # just await
-    result = await chain.ainvoke(vars)                              # one-shot
+# async def _run_chain(prompt: str, **vars) -> tuple[str, List[AIMessage]]:
+#     """
+#     Pull the LangSmith prompt and invoke it once (no streaming).
+#     Returns (full_text, [AIMessage]).
+#     """
+#     chain = await _client.pull_prompt(prompt, include_model=True)   # just await
+#     result = await chain.ainvoke(vars)                              # one-shot
 
-    # If the prompt returns an AIMessage already, great.
-    if isinstance(result, AIMessage):
-        content = result.content or ""
-        return content.strip(), [result]
+#     # If the prompt returns an AIMessage already, great.
+#     if isinstance(result, AIMessage):
+#         content = result.content or ""
+#         return content.strip(), [result]
 
-    # Otherwise assume it's a plain string
-    content = str(result).strip()
-    return content, [AIMessage(content=content)]
+#     # Otherwise assume it's a plain string
+#     content = str(result).strip()
+#     return content, [AIMessage(content=content)]
+
+
+
+def _latest_human(state: BaseState) -> str | None:
+    """
+    Returns the most-recent human message’s text, or None if none found.
+    """
+    for msg in reversed(state.messages):
+        if isinstance(msg, HumanMessage) and msg.content:
+            return msg.content
+    return None
+
+def _coerce_json(text: str) -> Union[dict, None]:
+    """
+    Try very hard to convert *text* into a Python dict.
+
+    Returns a dict on success, or None if parsing fails.
+    """
+    try:
+        return json.loads(text)                     # strict JSON
+    except json.JSONDecodeError:
+        pass
+
+    try:
+        return ast.literal_eval(text)               # {'single': 'quotes'}
+    except (ValueError, SyntaxError):
+        pass
+
+    # clip out the first {...} block and retry (handles extra prose)
+    m = re.search(r'{.*}', text, re.S)
+    if m:
+        return _coerce_json(m.group())
+
+    return None
+
+def _expects_structured(chain) -> bool:
+    """
+    Heuristic: does this runnable have a non-string output parser?
+    Works for most LangSmith / LangChain structured-prompt patterns.
+    """
+    parser = getattr(chain, "output_parser", None)
+    return parser is not None and not isinstance(parser, StrOutputParser)
+
+
+async def _run_chain(prompt: str, **vars) -> Tuple[Union[Dict[str, Any], str], List[AIMessage]]:
+    """
+    Invoke a LangSmith prompt and normalise the result.
+
+    Returns:
+        (dict | str,  [AIMessage])
+        • dict → structured JSON-like output
+        • str  → plain-text output
+    """
+    chain = await _client.pull_prompt(prompt, include_model=True)
+    structured_expected = _expects_structured(chain)
+
+    raw = await chain.ainvoke(vars)                 # Could be dict | str | Message
+    if isinstance(raw, BaseMessage):
+        content  = raw.content or ""
+        messages = [raw] if isinstance(raw, AIMessage) else [AIMessage(content=content)]
+    else:
+        content  = str(raw)
+        messages = [AIMessage(content=content)]
+
+    if isinstance(raw, dict):                       # Already structured
+        return raw, messages
+
+    if structured_expected or content.lstrip().startswith(("{", "[")):
+        maybe = _coerce_json(content)
+        if maybe is not None:
+            return maybe, messages
+    return content.strip(), messages        # <<<<<<  NEW LINE
+
 
 async def _reflection_messages(survey: str,
                                revision_request: str = "") -> List[AIMessage]:
@@ -161,7 +237,7 @@ async def initial_design_node(state: DesignerState) -> DesignerState:
     )
 
     # 2) create a reflection **about** that draft
-    reflection_msgs = await _reflection_messages(draft)
+    reflection_msgs = await _reflection_messages(draft, objective)
 
     return _update_state(
         state,
@@ -278,6 +354,6 @@ graph.add_edge(START, "initial_design")
 graph.add_edge("initial_design", END)
 
 compiled_graph = graph.compile(
-    name="survey_designer25",
+    name="survey_designer28",
     # checkpointer=SqliteSaver("survey_graph.db")  # add if you want durable interrupts
 )
